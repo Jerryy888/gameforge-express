@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { HomeSEO } from "@/components/SEO/SEO";
 import Header from "@/components/Layout/Header";
 import Footer from "@/components/Layout/Footer";
 import GameGrid from "@/components/Game/GameGrid";
@@ -116,7 +117,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <HomeSEO />
       <Header />
+      
       
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
