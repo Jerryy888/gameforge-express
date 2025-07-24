@@ -22,7 +22,8 @@
       "Bash(bash:*)",
       "Bash(./manual-deploy.sh)",
       "Bash(tar:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
