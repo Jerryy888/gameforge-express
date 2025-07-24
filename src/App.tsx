@@ -8,6 +8,10 @@ import Games from "./pages/Games";
 import GameDetail from "./pages/GameDetail";
 import GamePlay from "./pages/GamePlay";
 import SearchResults from "./pages/SearchResults";
+import ContactUs from "./pages/ContactUs";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import DMCAPage from "./pages/DMCAPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +30,10 @@ const App = () => (
           <Route path="/game/:id" element={<GameDetail />} />
           <Route path="/play/:id" element={<GamePlay />} />
           <Route path="/search" element={<SearchResults />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/dmca" element={<DMCAPage />} />
           <Route path="/admin/*" element={<AdminLayout />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
