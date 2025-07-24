@@ -20,8 +20,9 @@ export default {
 		extend: {
 			fontFamily: {
 				'orbitron': ['Orbitron', 'monospace'],
-				'exo': ['Exo 2', 'sans-serif'],
-				'sans': ['Exo 2', 'sans-serif'],
+				'rajdhani': ['Rajdhani', 'sans-serif'],
+				'space-grotesk': ['Space Grotesk', 'sans-serif'],
+				'sans': ['Space Grotesk', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
