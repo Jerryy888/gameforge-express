@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import AdBanner from "@/components/Layout/AdBanner";
@@ -11,37 +11,79 @@ import {
   Share2, 
   Heart,
   Home,
-  Info
+  Info,
+  AlertCircle,
+  Loader,
+  RefreshCw,
+  Play
 } from "lucide-react";
-
-// Mock game data
-const gameData = {
-  1: {
-    id: 1,
-    title: "Cyber Racer 3D",
-    gameUrl: "https://example.com/games/cyber-racer-3d", // This would be your game file URL
-    category: "Racing",
-    description: "High-speed futuristic racing with neon graphics",
-    controls: [
-      "Arrow Keys or WASD - Move",
-      "Spacebar - Brake",
-      "Shift - Boost",
-      "R - Restart"
-    ]
-  }
-};
+import { gameAPI, type Game } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const GamePlay = () => {
   const { id } = useParams();
-  const [game, setGame] = useState(gameData[Number(id) as keyof typeof gameData]);
+  const [game, setGame] = useState<Game | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGameLoading, setIsGameLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [gameError, setGameError] = useState(false);
+  
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
+    if (id) {
+      loadGameData(id);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    // 监听全屏变化
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  const loadGameData = async (gameId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const gameData = await gameAPI.getGame(gameId);
+      setGame(gameData);
+
+      // 增加播放计数
+      try {
+        await gameAPI.incrementPlayCount(gameData.id);
+      } catch (err) {
+        console.error('Failed to increment play count:', err);
+      }
+    } catch (err: any) {
+      console.error('Failed to load game:', err);
+      setError(err.message || 'Failed to load game data');
+      
+      if (err.status === 404) {
+        setError('Game not found');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGameLoad = () => {
+    setIsGameLoading(false);
+    setGameError(false);
+  };
+
+  const handleGameError = () => {
+    setIsGameLoading(false);
+    setGameError(true);
+  };
 
   const toggleFullscreen = () => {
     const gameContainer = document.getElementById('game-container');
@@ -55,24 +97,91 @@ const GamePlay = () => {
   };
 
   const restartGame = () => {
-    const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
-    if (iframe) {
-      const currentSrc = iframe.src;
-      iframe.src = currentSrc; // Reload the iframe
+    if (iframeRef.current && game?.gameUrl) {
+      setIsGameLoading(true);
+      setGameError(false);
+      iframeRef.current.src = game.gameUrl;
     }
   };
 
-  if (!game) {
+  const handleShare = async () => {
+    if (!game) return;
+    
+    const url = window.location.href;
+    const text = `Play ${game.title} - ${game.description}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: game.title,
+          text,
+          url
+        });
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link Copied",
+          description: "Game link has been copied to clipboard!"
+        });
+      } catch (err) {
+        console.error('Copy failed:', err);
+        toast({
+          title: "Share",
+          description: "Share this game with your friends!",
+          variant: "default"
+        });
+      }
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Game Not Found</h1>
-          <Link to="/games">
-            <Button>Browse Games</Button>
-          </Link>
+          <Loader className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Loading Game...</h2>
+          <p className="text-muted-foreground">Please wait while we prepare your game</p>
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {error === 'Game not found' ? 'Game Not Found' : 'Loading Error'}
+          </h1>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            {error === 'Game not found' 
+              ? "The game you're looking for doesn't exist or has been removed."
+              : error
+            }
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/games">
+              <Button>Browse Games</Button>
+            </Link>
+            {error !== 'Game not found' && (
+              <Button variant="outline" onClick={() => id && loadGameData(id)}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again  
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!game) {
+    return null;
   }
 
   return (
@@ -109,7 +218,7 @@ const GamePlay = () => {
                 </span>
               </Button>
               
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleShare}>
                 <Share2 className="h-4 w-4" />
                 <span className="hidden md:inline ml-2">Share</span>
               </Button>
@@ -143,7 +252,7 @@ const GamePlay = () => {
                 id="game-container"
                 className="relative bg-black rounded-lg overflow-hidden aspect-video shadow-2xl"
               >
-                {isLoading ? (
+                {isGameLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -151,14 +260,28 @@ const GamePlay = () => {
                       <p className="text-white/70 text-sm mt-2">{game.title}</p>
                     </div>
                   </div>
+                ) : gameError ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-destructive/20 to-muted/20">
+                    <div className="text-center">
+                      <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+                      <p className="text-white text-lg font-semibold mb-2">Game Failed to Load</p>
+                      <p className="text-white/70 text-sm mb-4">Unable to load the game. Please try again.</p>
+                      <Button onClick={restartGame} variant="secondary">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <iframe
-                    id="game-iframe"
+                    ref={iframeRef}
                     src={game.gameUrl}
                     className="w-full h-full border-0"
                     allowFullScreen
                     title={game.title}
-                    sandbox="allow-scripts allow-same-origin allow-forms"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    onLoad={handleGameLoad}
+                    onError={handleGameError}
                   />
                 )}
               </div>
@@ -176,7 +299,7 @@ const GamePlay = () => {
                         <Heart className="h-4 w-4 mr-1" />
                         Like
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={handleShare}>
                         <Share2 className="h-4 w-4 mr-1" />
                         Share
                       </Button>
@@ -223,7 +346,7 @@ const GamePlay = () => {
                       Add to Favorites
                     </Button>
                     
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button variant="outline" className="w-full justify-start" onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Share Game
                     </Button>

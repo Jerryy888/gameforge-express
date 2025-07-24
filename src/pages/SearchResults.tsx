@@ -58,7 +58,7 @@ const SearchResults = () => {
     
     // 获取推荐数据
     loadSuggestions();
-  }, [query, category, sortBy, initialFilters, performSearch]);
+  }, [query, category, sortBy]);
 
   useEffect(() => {
     // 获取最近搜索

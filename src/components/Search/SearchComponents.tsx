@@ -47,7 +47,7 @@ export const SearchBar = ({
 
     // 获取热门搜索
     searchAPI.getTrendingSearches()
-      .then(setSuggestions)
+      .then(setTrendingSearches)
       .catch(console.error);
   }, []);
 

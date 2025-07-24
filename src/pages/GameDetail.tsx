@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Layout/Header";
 import Footer from "@/components/Layout/Footer";
 import GameGrid from "@/components/Game/GameGrid";
@@ -17,88 +17,107 @@ import {
   ChevronLeft,
   Calendar,
   User,
-  Gamepad2
+  Gamepad2,
+  AlertCircle,
+  Clock,
+  Download
 } from "lucide-react";
+import { gameAPI, type Game } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock game data
-const gameData = {
-  1: {
-    id: 1,
-    title: "Cyber Racer 3D",
-    description: "High-speed futuristic racing with neon graphics and electronic music. Experience the thrill of racing in a cyberpunk world with stunning visual effects.",
-    longDescription: `
-      Get ready for the ultimate racing experience in Cyber Racer 3D! This high-octane racing game combines futuristic vehicles with stunning neon-lit tracks that will keep you on the edge of your seat.
-
-      **Key Features:**
-      • Futuristic racing vehicles with unique designs
-      • Neon-lit tracks with dynamic lighting effects
-      • Multiple game modes including Time Trial and Championship
-      • Upgrade system for enhanced performance
-      • Electronic soundtrack that matches the cyberpunk atmosphere
-      
-      **How to Play:**
-      • Use arrow keys or WASD to control your vehicle
-      • Collect power-ups to gain advantages
-      • Avoid obstacles and other racers
-      • Complete laps in the fastest time possible
-      
-      Navigate through the glowing cityscape, dodge obstacles, and compete against AI opponents in this thrilling racing adventure. The game features multiple tracks, each with its own unique challenges and visual style.
-    `,
-    thumbnail: "/placeholder.svg",
-    screenshots: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"],
-    category: "Racing",
-    tags: ["Racing", "3D", "Futuristic", "Neon", "Fast-paced"],
-    playCount: 125000,
-    rating: 4.8,
-    reviews: 1250,
-    releaseDate: "2024-01-15",
-    developer: "NeonGames Studio",
-    fileSize: "15.2 MB",
-    isFeature: true
-  }
-};
-
-const relatedGames = [
-  {
-    id: 2,
-    title: "Space Defender",
-    description: "Defend Earth from alien invasion",
-    thumbnail: "/placeholder.svg",
-    category: "Action",
-    playCount: 156000,
-    rating: 4.9
-  },
-  {
-    id: 3,
-    title: "Puzzle Master",
-    description: "Mind-bending puzzles",
-    thumbnail: "/placeholder.svg",
-    category: "Puzzle",
-    playCount: 89000,
-    rating: 4.6
-  },
-  {
-    id: 4,
-    title: "Block Breaker",
-    description: "Classic arcade game",
-    thumbnail: "/placeholder.svg",
-    category: "Arcade",
-    playCount: 234000,
-    rating: 4.7
-  }
-];
 
 const GameDetail = () => {
   const { id } = useParams();
-  const [game, setGame] = useState(gameData[Number(id) as keyof typeof gameData]);
+  const [game, setGame] = useState<Game | null>(null);
+  const [relatedGames, setRelatedGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeScreenshot, setActiveScreenshot] = useState(0);
+  
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (id) {
+      loadGameData(id);
+    }
+  }, [id]);
+
+  const loadGameData = async (gameId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 并行加载游戏详情和相关游戏
+      const [gameData, relatedGamesData] = await Promise.all([
+        gameAPI.getGame(gameId),
+        gameAPI.getRelatedGames(parseInt(gameId), 4).catch(() => [])
+      ]);
+
+      setGame(gameData);
+      setRelatedGames(relatedGamesData);
+    } catch (err: any) {
+      console.error('Failed to load game:', err);
+      setError(err.message || 'Failed to load game data');
+      
+      if (err.status === 404) {
+        setError('Game not found');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePlay = async () => {
+    if (!game) return;
+    
+    try {
+      // 增加播放计数
+      await gameAPI.incrementPlayCount(game.id);
+      
+      // 跳转到游戏播放页面
+      navigate(`/play/${game.id}`);
+    } catch (err) {
+      console.error('Failed to increment play count:', err);
+      // 即使计数失败也继续跳转
+      navigate(`/play/${game.id}`);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!game) return;
+    
+    const url = window.location.href;
+    const text = `Check out ${game.title} - ${game.description}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: game.title,
+          text,
+          url
+        });
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    } else {
+      // 后备方案：复制到剪贴板
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link Copied",
+          description: "Game link has been copied to clipboard!"
+        });
+      } catch (err) {
+        console.error('Copy failed:', err);
+        toast({
+          title: "Share",
+          description: "Share this game with your friends!",
+          variant: "default"
+        });
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -122,22 +141,41 @@ const GameDetail = () => {
     );
   }
 
-  if (!game) {
+  if (error) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Game Not Found</h1>
-            <p className="text-muted-foreground mb-6">The game you're looking for doesn't exist.</p>
-            <Link to="/games">
-              <Button>Browse All Games</Button>
-            </Link>
+          <div className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+            <h1 className="text-2xl font-bold text-foreground mb-4">
+              {error === 'Game not found' ? 'Game Not Found' : 'Loading Error'}
+            </h1>
+            <p className="text-muted-foreground mb-6 text-center max-w-md">
+              {error === 'Game not found' 
+                ? "The game you're looking for doesn't exist or has been removed."
+                : error
+              }
+            </p>
+            <div className="flex gap-3">
+              <Link to="/games">
+                <Button>Browse All Games</Button>
+              </Link>
+              {error !== 'Game not found' && (
+                <Button variant="outline" onClick={() => id && loadGameData(id)}>
+                  Try Again
+                </Button>
+              )}
+            </div>
           </div>
         </main>
         <Footer />
       </div>
     );
+  }
+
+  if (!game) {
+    return null;
   }
 
   return (
@@ -201,8 +239,10 @@ const GameDetail = () => {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-                  <span className="font-medium">{game.rating}</span>
-                  <span className="text-muted-foreground ml-1">({game.reviews} reviews)</span>
+                  <span className="font-medium">{game.rating || 'N/A'}</span>
+                  <span className="text-muted-foreground ml-1">
+                    ({game.reviewCount || 0} reviews)
+                  </span>
                 </div>
                 
                 <div className="flex items-center text-muted-foreground">
@@ -214,7 +254,7 @@ const GameDetail = () => {
               <p className="text-muted-foreground mb-4">{game.description}</p>
               
               <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary">{game.category}</Badge>
+                <Badge variant="secondary">{game.category?.name || 'Uncategorized'}</Badge>
                 {game.tags?.map((tag) => (
                   <Badge key={tag} variant="outline">{tag}</Badge>
                 ))}
@@ -223,18 +263,16 @@ const GameDetail = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Link to={`/play/${game.id}`} className="flex-1">
-                <Button size="lg" className="w-full">
-                  <Play className="h-5 w-5 mr-2" />
-                  Play Now
-                </Button>
-              </Link>
+              <Button size="lg" className="flex-1" onClick={handlePlay}>
+                <Play className="h-5 w-5 mr-2" />
+                Play Now
+              </Button>
               
               <Button variant="outline" size="lg">
                 <Heart className="h-5 w-5" />
               </Button>
               
-              <Button variant="outline" size="lg">
+              <Button variant="outline" size="lg" onClick={handleShare}>
                 <Share2 className="h-5 w-5" />
               </Button>
             </div>
@@ -248,24 +286,24 @@ const GameDetail = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Released:</span>
-                    <span>{new Date(game.releaseDate).toLocaleDateString()}</span>
+                    <span>{new Date(game.createdAt).toLocaleDateString()}</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Developer:</span>
-                    <span>{game.developer}</span>
+                    <span>{game.developer || 'Unknown'}</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <Gamepad2 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Category:</span>
-                    <span>{game.category}</span>
+                    <span>{game.category?.name || 'Uncategorized'}</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Size:</span>
-                    <span>{game.fileSize}</span>
+                    <span>{game.fileSize || 'Unknown'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -285,11 +323,17 @@ const GameDetail = () => {
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold text-foreground mb-4">About This Game</h2>
                 <div className="prose prose-invert max-w-none">
-                  {game.longDescription.split('\n').map((paragraph, index) => (
-                    <p key={index} className="text-muted-foreground mb-3">
-                      {paragraph}
+                  {game.longDescription ? (
+                    game.longDescription.split('\n').map((paragraph, index) => (
+                      <p key={index} className="text-muted-foreground mb-3">
+                        {paragraph}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">
+                      {game.description}
                     </p>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

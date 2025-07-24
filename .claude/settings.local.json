@@ -12,7 +12,17 @@
       "Bash(npm run:*)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(curl:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(./production-deploy.sh)",
+      "Bash(dos2unix:*)",
+      "Bash(sed:*)",
+      "Bash(bash:*)",
+      "Bash(./manual-deploy.sh)",
+      "Bash(tar:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

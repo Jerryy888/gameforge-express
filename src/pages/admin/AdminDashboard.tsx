@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,50 +23,71 @@ import {
   Eye,
   Plus,
   Calendar,
-  Activity
+  Activity,
+  AlertCircle
 } from "lucide-react";
-
-// Mock data
-const stats = {
-  totalGames: 47,
-  totalPlays: 1250000,
-  dailyUsers: 15420,
-  revenue: 2340
-};
-
-const recentGames = [
-  { id: 1, title: "Cyber Racer 3D", category: "Racing", plays: 125000, status: "active" },
-  { id: 2, title: "Puzzle Master", category: "Puzzle", plays: 89000, status: "active" },
-  { id: 3, title: "Space Defender", category: "Action", plays: 156000, status: "active" },
-  { id: 4, title: "Block Breaker", category: "Arcade", plays: 234000, status: "featured" }
-];
-
-const playDataWeek = [
-  { name: "Mon", plays: 12000, users: 3200 },
-  { name: "Tue", plays: 15000, users: 4100 },
-  { name: "Wed", plays: 18000, users: 4800 },
-  { name: "Thu", plays: 22000, users: 5500 },
-  { name: "Fri", plays: 28000, users: 7200 },
-  { name: "Sat", plays: 35000, users: 9100 },
-  { name: "Sun", plays: 31000, users: 8300 }
-];
-
-const categoryData = [
-  { name: "Action", count: 15, percentage: 32 },
-  { name: "Puzzle", count: 12, percentage: 26 },
-  { name: "Racing", count: 8, percentage: 17 },
-  { name: "Adventure", count: 7, percentage: 15 },
-  { name: "Arcade", count: 5, percentage: 10 }
-];
+import { adminAPI, gameAPI, type AdminStats, type Game } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [recentGames, setRecentGames] = useState<Game[]>([]);
+  
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 并行加载数据
+      const [dashboardStats, gamesResponse] = await Promise.all([
+        adminAPI.getDashboardStats(),
+        gameAPI.getGames({ limit: 10, sort: 'newest' })
+      ]);
+
+      setStats(dashboardStats);
+      setRecentGames(gamesResponse.games);
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+      
+      // 如果是401错误，说明未认证
+      if (err.status === 401) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access the admin dashboard",
+          variant: "destructive"
+        });
+        navigate('/admin/login');
+        return;
+      }
+      
+      // 显示错误提示
+      toast({
+        title: "Loading Error",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddGame = () => {
+    navigate('/admin/games/new');
+  };
+
+  const handleViewAllGames = () => {
+    navigate('/admin/games');
+  };
 
   if (isLoading) {
     return (
@@ -75,6 +97,25 @@ const AdminDashboard = () => {
         ))}
       </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Failed to Load Dashboard</h3>
+        <p className="text-muted-foreground mb-4 text-center max-w-md">
+          {error}
+        </p>
+        <Button onClick={loadDashboardData}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
   }
 
   return (
@@ -88,7 +129,7 @@ const AdminDashboard = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button>
+          <Button onClick={handleAddGame}>
             <Plus className="h-4 w-4 mr-2" />
             Add Game
           </Button>
@@ -178,7 +219,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={playDataWeek}>
+              <AreaChart data={stats.weeklyActivity}>
                 <defs>
                   <linearGradient id="colorPlays" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
@@ -211,7 +252,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={categoryData}>
+              <BarChart data={stats.categoryDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
@@ -231,7 +272,7 @@ const AdminDashboard = () => {
               <Calendar className="h-5 w-5 mr-2" />
               Recent Games
             </span>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleViewAllGames}>
               View All
             </Button>
           </CardTitle>
@@ -245,27 +286,37 @@ const AdminDashboard = () => {
               <div key={game.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                    <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                    {game.thumbnail ? (
+                      <img 
+                        src={game.thumbnail} 
+                        alt={game.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                    )}
                   </div>
                   <div>
                     <h4 className="font-semibold text-foreground">{game.title}</h4>
-                    <p className="text-sm text-muted-foreground">{game.category}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {game.category?.name || 'Uncategorized'}
+                    </p>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <p className="text-sm font-medium text-foreground">
-                      {game.plays.toLocaleString()} plays
+                      {game.playCount.toLocaleString()} plays
                     </p>
                     <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                   
                   <Badge 
-                    variant={game.status === "featured" ? "default" : "secondary"}
-                    className={game.status === "featured" ? "bg-primary" : ""}
+                    variant={game.isFeature ? "default" : "secondary"}
+                    className={game.isFeature ? "bg-primary" : ""}
                   >
-                    {game.status}
+                    {game.isFeature ? "featured" : game.status.toLowerCase()}
                   </Badge>
                 </div>
               </div>
