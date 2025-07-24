@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Header from "@/components/Layout/Header";
 import Footer from "@/components/Layout/Footer";
 import GameGrid from "@/components/Game/GameGrid";
@@ -6,6 +7,7 @@ import AdBanner from "@/components/Layout/AdBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Game, Category, gameAPI, categoryAPI, handleApiError } from "@/lib/api";
 import { 
   TrendingUp, 
   Clock, 
@@ -13,105 +15,72 @@ import {
   Zap, 
   Grid3X3,
   ChevronRight,
-  Play
+  Play,
+  Gamepad2,
+  Users,
+  Heart,
+  Trophy
 } from "lucide-react";
 
-// Mock data - Replace with API calls
-const featuredGames = [
-  {
-    id: 1,
-    title: "Cyber Racer 3D",
-    description: "High-speed futuristic racing with neon graphics and electronic music",
-    thumbnail: "/placeholder.svg",
-    category: "Racing",
-    playCount: 125000,
-    rating: 4.8,
-    isFeature: true
-  },
-  {
-    id: 2,
-    title: "Puzzle Master",
-    description: "Mind-bending puzzles that will challenge your logic and creativity",
-    thumbnail: "/placeholder.svg",
-    category: "Puzzle",
-    playCount: 89000,
-    rating: 4.6,
-    isFeature: true
-  },
-  {
-    id: 3,
-    title: "Space Defender",
-    description: "Defend Earth from alien invasion in this action-packed shooter",
-    thumbnail: "/placeholder.svg",
-    category: "Action",
-    playCount: 156000,
-    rating: 4.9,
-    isFeature: true
-  }
-];
+// Icon mapping for categories
+const categoryIcons: Record<string, any> = {
+  action: Zap,
+  puzzle: Grid3X3,
+  adventure: TrendingUp,
+  arcade: Clock,
+  racing: Trophy,
+  strategy: Users,
+  sports: Heart,
+  rpg: Gamepad2,
+  default: Gamepad2
+};
 
-const popularGames = [
-  {
-    id: 4,
-    title: "Block Breaker",
-    description: "Classic arcade game with modern graphics",
-    thumbnail: "/placeholder.svg",
-    category: "Arcade",
-    playCount: 234000,
-    rating: 4.7
-  },
-  {
-    id: 5,
-    title: "Adventure Quest",
-    description: "Epic adventure in mystical lands",
-    thumbnail: "/placeholder.svg",
-    category: "Adventure",
-    playCount: 178000,
-    rating: 4.5
-  },
-  {
-    id: 6,
-    title: "Word Challenge",
-    description: "Test your vocabulary skills",
-    thumbnail: "/placeholder.svg",
-    category: "Puzzle",
-    playCount: 92000,
-    rating: 4.4
-  },
-  {
-    id: 7,
-    title: "Racing Thunder",
-    description: "Fast-paced street racing",
-    thumbnail: "/placeholder.svg",
-    category: "Racing",
-    playCount: 201000,
-    rating: 4.6
-  },
-  {
-    id: 8,
-    title: "Strategy Empire",
-    description: "Build your empire and conquer",
-    thumbnail: "/placeholder.svg",
-    category: "Strategy",
-    playCount: 145000,
-    rating: 4.8
-  }
-];
-
-const categories = [
-  { name: "Action", icon: Zap, count: 45, slug: "action", color: "bg-red-500" },
-  { name: "Puzzle", icon: Grid3X3, count: 32, slug: "puzzle", color: "bg-blue-500" },
-  { name: "Adventure", icon: TrendingUp, count: 28, slug: "adventure", color: "bg-green-500" },
-  { name: "Arcade", icon: Clock, count: 52, slug: "arcade", color: "bg-purple-500" }
-];
+// Color mapping for categories
+const categoryColors: Record<string, string> = {
+  action: "bg-red-500",
+  puzzle: "bg-blue-500", 
+  adventure: "bg-green-500",
+  arcade: "bg-purple-500",
+  racing: "bg-yellow-500",
+  strategy: "bg-indigo-500",
+  sports: "bg-pink-500",
+  rpg: "bg-teal-500",
+  default: "bg-gray-500"
+};
 
 const Index = () => {
+  const [featuredGames, setFeaturedGames] = useState<Game[]>([]);
+  const [popularGames, setPopularGames] = useState<Game[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Load data in parallel
+        const [categoriesData, featuredResponse, popularResponse] = await Promise.all([
+          categoryAPI.getCategories(),
+          gameAPI.getGames({ featured: true, limit: 3 }),
+          gameAPI.getGames({ sort: 'popular', limit: 8 })
+        ]);
+
+        setCategories(categoriesData.slice(0, 4)); // Show only first 4 categories
+        setFeaturedGames(featuredResponse.games);
+        setPopularGames(popularResponse.games);
+      } catch (err) {
+        console.error('Failed to load homepage data:', err);
+        const errorInfo = handleApiError(err);
+        setError(`Failed to load data: ${errorInfo.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   return (
@@ -133,13 +102,17 @@ const Index = () => {
                 Discover thousands of free online games. No downloads required - play instantly in your browser!
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90">
-                  <Play className="h-5 w-5 mr-2" />
-                  Start Playing
-                </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
-                  Browse Games
-                </Button>
+                <Link to="/games">
+                  <Button size="lg" className="bg-white text-primary hover:bg-white/90">
+                    <Play className="h-5 w-5 mr-2" />
+                    Start Playing
+                  </Button>
+                </Link>
+                <Link to="/games">
+                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
+                    Browse Games
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -150,26 +123,61 @@ const Index = () => {
           <AdBanner size="large" position="content" />
         </section>
 
+        {/* Error Message */}
+        {error && (
+          <section className="mb-8">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-destructive text-sm">{error}</p>
+            </div>
+          </section>
+        )}
+
         {/* Categories */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
               Game Categories
             </h2>
+            <Link to="/games">
+              <Button variant="outline" className="group">
+                View All
+                <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map(({ name, icon: Icon, count, slug, color }) => (
-              <Card key={slug} className="group cursor-pointer hover:shadow-glow transition-all duration-300 border-border hover:border-primary/50">
-                <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
-                    <Icon className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">{name}</h3>
-                  <p className="text-sm text-muted-foreground">{count} games</p>
-                </CardContent>
-              </Card>
-            ))}
+            {isLoading ? (
+              // Loading skeleton for categories
+              [...Array(4)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-4" />
+                    <div className="h-4 bg-muted rounded mb-2" />
+                    <div className="h-3 bg-muted rounded w-16 mx-auto" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              categories.map((category) => {
+                const Icon = categoryIcons[category.slug] || categoryIcons.default;
+                const color = categoryColors[category.slug] || categoryColors.default;
+                
+                return (
+                  <Link key={category.id} to={`/games?category=${category.slug}`}>
+                    <Card className="group cursor-pointer hover:shadow-glow transition-all duration-300 border-border hover:border-primary/50">
+                      <CardContent className="p-6 text-center">
+                        <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
+                          <Icon className="h-8 w-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-foreground mb-1">{category.name}</h3>
+                        <p className="text-sm text-muted-foreground">{category.gameCount} games</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -180,10 +188,12 @@ const Index = () => {
               <Star className="h-6 w-6 text-primary mr-2" />
               Featured Games
             </h2>
-            <Button variant="outline" className="group">
-              View All
-              <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <Link to="/games?featured=true">
+              <Button variant="outline" className="group">
+                View All
+                <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </div>
           
           <GameGrid games={featuredGames} loading={isLoading} />
@@ -199,10 +209,12 @@ const Index = () => {
                   <TrendingUp className="h-6 w-6 text-primary mr-2" />
                   Popular Games
                 </h2>
-                <Button variant="outline" className="group">
-                  View All
-                  <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                <Link to="/games?sort=popular">
+                  <Button variant="outline" className="group">
+                    View All
+                    <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
               </div>
               
               <GameGrid games={popularGames} loading={isLoading} />
@@ -221,26 +233,42 @@ const Index = () => {
                   Recently Added
                 </h3>
                 <div className="space-y-3">
-                  {featuredGames.slice(0, 3).map((game) => (
-                    <div key={game.id} className="flex items-center space-x-3 group cursor-pointer">
-                      <img 
-                        src={game.thumbnail} 
-                        alt={game.title}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                          {game.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {game.playCount.toLocaleString()} plays
-                        </p>
+                  {isLoading ? (
+                    // Loading skeleton for recent games
+                    [...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-3 animate-pulse">
+                        <div className="w-12 h-12 bg-muted rounded-lg" />
+                        <div className="flex-1">
+                          <div className="h-4 bg-muted rounded mb-1" />
+                          <div className="h-3 bg-muted rounded w-16" />
+                        </div>
+                        <div className="w-16 h-5 bg-muted rounded" />
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {game.category}
-                      </Badge>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    featuredGames.slice(0, 3).map((game) => (
+                      <Link key={game.id} to={`/game/${game.slug || game.id}`}>
+                        <div className="flex items-center space-x-3 group cursor-pointer">
+                          <img 
+                            src={game.thumbnail || "/placeholder.svg"} 
+                            alt={game.title}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                              {game.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              {game.playCount.toLocaleString()} plays
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {game.category?.name || 'Game'}
+                          </Badge>
+                        </div>
+                      </Link>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

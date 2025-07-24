@@ -8,131 +8,123 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Game, Category, gameAPI, categoryAPI, handleApiError } from "@/lib/api";
 import { 
   Search, 
   Filter, 
   Grid3X3, 
   List,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
-// Mock data - same as Index page
-const allGames = [
-  {
-    id: 1,
-    title: "Cyber Racer 3D",
-    description: "High-speed futuristic racing with neon graphics and electronic music",
-    thumbnail: "/placeholder.svg",
-    category: "Racing",
-    playCount: 125000,
-    rating: 4.8,
-    isFeature: true
-  },
-  {
-    id: 2,
-    title: "Puzzle Master",
-    description: "Mind-bending puzzles that will challenge your logic and creativity",
-    thumbnail: "/placeholder.svg",
-    category: "Puzzle",
-    playCount: 89000,
-    rating: 4.6
-  },
-  {
-    id: 3,
-    title: "Space Defender",
-    description: "Defend Earth from alien invasion in this action-packed shooter",
-    thumbnail: "/placeholder.svg",
-    category: "Action",
-    playCount: 156000,
-    rating: 4.9
-  },
-  {
-    id: 4,
-    title: "Block Breaker",
-    description: "Classic arcade game with modern graphics",
-    thumbnail: "/placeholder.svg",
-    category: "Arcade",
-    playCount: 234000,
-    rating: 4.7
-  },
-  {
-    id: 5,
-    title: "Adventure Quest",
-    description: "Epic adventure in mystical lands",
-    thumbnail: "/placeholder.svg",
-    category: "Adventure",
-    playCount: 178000,
-    rating: 4.5
-  },
-  // Add more games...
-];
-
-const categories = ["All", "Action", "Puzzle", "Adventure", "Racing", "Arcade", "Strategy"];
 const sortOptions = [
   { value: "popular", label: "Most Popular" },
   { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
   { value: "rating", label: "Highest Rated" },
-  { value: "name", label: "A-Z" }
+  { value: "name", label: "A-Z" },
+  { value: "plays", label: "Most Played" }
 ];
 
 const Games = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [games, setGames] = useState(allGames);
+  const [games, setGames] = useState<Game[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "All");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "popular");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"));
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalGames, setTotalGames] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
 
+  // Load categories on component mount
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await categoryAPI.getCategories();
+        setCategories(categoriesData);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+        const errorInfo = handleApiError(err);
+        setError(`Failed to load categories: ${errorInfo.message}`);
+      }
+    };
+
+    loadCategories();
   }, []);
 
+  // Load games when search parameters change
   useEffect(() => {
-    // Filter and sort games
-    let filteredGames = [...allGames];
+    const loadGames = async () => {
+      setIsLoading(true);
+      setError(null);
 
-    // Filter by search query
-    if (searchQuery) {
-      filteredGames = filteredGames.filter(game =>
-        game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        game.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+      try {
+        const params = {
+          page: currentPage,
+          limit: 12,
+          search: searchQuery || undefined,
+          category: selectedCategory || undefined,
+          sort: sortBy
+        };
 
-    // Filter by category
-    if (selectedCategory !== "All") {
-      filteredGames = filteredGames.filter(game => game.category === selectedCategory);
-    }
+        const response = await gameAPI.getGames(params);
+        setGames(response.games);
+        setTotalPages(response.pagination.totalPages);
+        setTotalGames(response.pagination.total);
+        setHasNext(response.pagination.hasNext);
+        setHasPrev(response.pagination.hasPrev);
+      } catch (err) {
+        console.error('Failed to load games:', err);
+        const errorInfo = handleApiError(err);
+        setError(`Failed to load games: ${errorInfo.message}`);
+        setGames([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    // Sort games
-    switch (sortBy) {
-      case "popular":
-        filteredGames.sort((a, b) => b.playCount - a.playCount);
-        break;
-      case "newest":
-        filteredGames.sort((a, b) => b.id - a.id);
-        break;
-      case "rating":
-        filteredGames.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case "name":
-        filteredGames.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-    }
-
-    setGames(filteredGames);
+    loadGames();
 
     // Update URL params
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
-    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    if (selectedCategory) params.set("category", selectedCategory);
     if (sortBy !== "popular") params.set("sort", sortBy);
+    if (currentPage > 1) params.set("page", currentPage.toString());
     setSearchParams(params);
-  }, [searchQuery, selectedCategory, sortBy, setSearchParams]);
+  }, [searchQuery, selectedCategory, sortBy, currentPage, setSearchParams]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCategoryChange = (categorySlug: string) => {
+    setSelectedCategory(categorySlug);
+    setCurrentPage(1); // Reset to first page when changing filters
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    setCurrentPage(1); // Reset to first page when changing sort
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchQuery(newSearch);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,7 +137,7 @@ const Games = () => {
             All Games
           </h1>
           <p className="text-muted-foreground">
-            Discover amazing games from our collection of {allGames.length}+ titles
+            Discover amazing games from our collection of {totalGames}+ titles
           </p>
         </div>
 
@@ -164,7 +156,7 @@ const Games = () => {
                 type="text"
                 placeholder="Search games..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -209,14 +201,21 @@ const Games = () => {
                   
                   {/* Category Filter */}
                   <div className="flex flex-wrap gap-2">
+                    <Badge
+                      variant={!selectedCategory ? "default" : "secondary"}
+                      className="cursor-pointer"
+                      onClick={() => handleCategoryChange("")}
+                    >
+                      All
+                    </Badge>
                     {categories.map((category) => (
                       <Badge
-                        key={category}
-                        variant={selectedCategory === category ? "default" : "secondary"}
+                        key={category.id}
+                        variant={selectedCategory === category.slug ? "default" : "secondary"}
                         className="cursor-pointer"
-                        onClick={() => setSelectedCategory(category)}
+                        onClick={() => handleCategoryChange(category.slug)}
                       >
-                        {category}
+                        {category.name}
                       </Badge>
                     ))}
                   </div>
@@ -225,7 +224,7 @@ const Games = () => {
                     <span className="text-sm text-muted-foreground">Sort by:</span>
                     <select
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
+                      onChange={(e) => handleSortChange(e.target.value)}
                       className="bg-background border border-border rounded-md px-3 py-1 text-sm"
                     >
                       {sortOptions.map((option) => (
@@ -241,16 +240,79 @@ const Games = () => {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Results */}
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {isLoading ? "Loading..." : `${games.length} games found`}
+                {isLoading ? "Loading..." : `${totalGames} games found`}
+                {currentPage > 1 && !isLoading && ` (Page ${currentPage} of ${totalPages})`}
               </p>
             </div>
             
             <GameGrid games={games} loading={isLoading} />
+
+            {/* Pagination */}
+            {!isLoading && totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={!hasPrev}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from(
+                    { length: Math.min(5, totalPages) },
+                    (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    }
+                  )}
+                </div>
+                  
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasNext}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
           
           {/* Sidebar Ads */}

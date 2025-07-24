@@ -1,12 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// Production Prisma schema for PostgreSQL
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,7 +13,7 @@ model Admin {
   username  String   @unique
   email     String   @unique
   password  String
-  role      String @default("ADMIN")
+  role      String   @default("ADMIN")
   isActive  Boolean  @default(true)
   lastLogin DateTime?
   createdAt DateTime @default(now())
@@ -60,7 +58,7 @@ model Game {
   fileUrl         String?
   gameUrl         String?  // For external hosted games
   isFeature       Boolean  @default(false)
-  status          String @default("ACTIVE")
+  status          String   @default("ACTIVE")
   views           Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -129,7 +127,6 @@ model FileUpload {
   @@map("file_uploads")
 }
 
-// Note: SQLite doesn't support enums, so we use strings instead
 // Valid values for reference:
 // AdminRole: "SUPER_ADMIN", "ADMIN", "MODERATOR"
 // GameStatus: "ACTIVE", "INACTIVE", "PENDING", "FEATURED"

@@ -6,7 +6,12 @@
       "Bash(npm run build:*)",
       "Bash(npm run lint)",
       "Bash(npm audit:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npm run:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

@@ -3,28 +3,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Play, Eye, Star } from "lucide-react";
+import { Game } from "@/lib/api";
 
 interface GameCardProps {
-  id: number;
-  title: string;
-  description: string;
-  thumbnail: string;
-  category: string;
-  playCount: number;
-  rating?: number;
-  isFeature?: boolean;
+  game: Game;
+  onPlayClick?: (gameId: number) => void;
 }
 
 const GameCard = ({ 
-  id, 
-  title, 
-  description, 
-  thumbnail, 
-  category, 
-  playCount, 
-  rating = 0,
-  isFeature = false 
+  game,
+  onPlayClick
 }: GameCardProps) => {
+  const { 
+    id, 
+    title, 
+    description, 
+    thumbnail, 
+    category, 
+    playCount, 
+    rating,
+    isFeature,
+    slug
+  } = game;
   return (
     <Card className="group bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-glow overflow-hidden">
       <div className="relative aspect-video overflow-hidden">
@@ -37,7 +37,7 @@ const GameCard = ({
         
         {/* Play Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <Link to={`/play/${id}`}>
+          <Link to={`/play/${slug || id}`} onClick={() => onPlayClick?.(id)}>
             <Button size="lg" className="bg-primary/90 hover:bg-primary text-primary-foreground shadow-glow">
               <Play className="h-5 w-5 mr-2" />
               Play Now
@@ -53,15 +53,15 @@ const GameCard = ({
             </Badge>
           )}
           <Badge variant="secondary" className="bg-secondary/80 text-secondary-foreground">
-            {category}
+            {category?.name || 'Uncategorized'}
           </Badge>
         </div>
 
         {/* Rating */}
-        {rating > 0 && (
+        {rating && rating > 0 && (
           <div className="absolute top-3 right-3 flex items-center space-x-1 bg-black/60 rounded-full px-2 py-1">
             <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-white font-medium">{rating}</span>
+            <span className="text-xs text-white font-medium">{rating.toFixed(1)}</span>
           </div>
         )}
       </div>
@@ -69,7 +69,7 @@ const GameCard = ({
       <CardContent className="p-4">
         <div className="space-y-3">
           <div>
-            <Link to={`/game/${id}`}>
+            <Link to={`/game/${slug || id}`}>
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                 {title}
               </h3>
@@ -86,12 +86,12 @@ const GameCard = ({
             </div>
             
             <div className="flex space-x-2">
-              <Link to={`/game/${id}`}>
+              <Link to={`/game/${slug || id}`}>
                 <Button variant="outline" size="sm" className="text-xs">
                   Details
                 </Button>
               </Link>
-              <Link to={`/play/${id}`}>
+              <Link to={`/play/${slug || id}`} onClick={() => onPlayClick?.(id)}>
                 <Button size="sm" className="text-xs">
                   <Play className="h-3 w-3 mr-1" />
                   Play
