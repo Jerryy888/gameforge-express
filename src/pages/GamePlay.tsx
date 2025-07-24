@@ -57,7 +57,8 @@ const GamePlay = () => {
   const restartGame = () => {
     const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
     if (iframe) {
-      iframe.src = iframe.src; // Reload the iframe
+      const currentSrc = iframe.src;
+      iframe.src = currentSrc; // Reload the iframe
     }
   };
 

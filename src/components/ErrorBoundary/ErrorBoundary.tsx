@@ -122,7 +122,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 // Hook version for functional components
 export const useErrorHandler = () => {
-  const handleError = (error: Error, errorInfo?: any) => {
+  const handleError = (error: Error, errorInfo?: ErrorInfo) => {
     console.error('Error occurred:', error, errorInfo);
     
     // 可以在这里添加错误上报逻辑

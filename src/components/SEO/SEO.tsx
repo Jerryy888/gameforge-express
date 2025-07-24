@@ -9,7 +9,7 @@ interface SEOProps {
   type?: string;
   noIndex?: boolean;
   canonicalUrl?: string;
-  structuredData?: any;
+  structuredData?: Record<string, unknown>;
 }
 
 export const SEO = ({
@@ -73,7 +73,18 @@ export const SEO = ({
 };
 
 // Predefined SEO configurations for different page types
-export const GameSEO = ({ game }: { game: any }) => {
+interface Game {
+  title: string;
+  description: string;
+  thumbnail: string;
+  category: string;
+  rating?: number;
+  reviews?: number;
+  releaseDate: string;
+  tags?: string[];
+}
+
+export const GameSEO = ({ game }: { game: Game }) => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Game",
@@ -114,7 +125,12 @@ export const GameSEO = ({ game }: { game: any }) => {
   );
 };
 
-export const CategorySEO = ({ category, gameCount }: { category: any; gameCount: number }) => {
+interface Category {
+  name: string;
+  description: string;
+}
+
+export const CategorySEO = ({ category, gameCount }: { category: Category; gameCount: number }) => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",

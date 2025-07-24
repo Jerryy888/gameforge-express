@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      AdminRole @default(ADMIN)
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  icon        String?  @db.VarChar(50)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  games Game[]
+
+  @@map("categories")
+}
+
+model Game {
+  id              Int      @id @default(autoincrement())
+  title           String   @db.VarChar(200)
+  slug            String   @unique @db.VarChar(200)
+  description     String   @db.Text
+  longDescription String?  @db.LongText
+  thumbnail       String   @db.VarChar(500)
+  screenshots     Json?    // Array of screenshot URLs
+  categoryId      Int
+  tags            Json?    // Array of tag strings
+  playCount       Int      @default(0)
+  rating          Float?   @db.Float
+  reviewCount     Int      @default(0)
+  releaseDate     DateTime @default(now())
+  developer       String?  @db.VarChar(100)
+  fileSize        String?  @db.VarChar(50)
+  fileUrl         String?  @db.VarChar(500)
+  gameUrl         String?  @db.VarChar(500) // For external hosted games
+  isFeature       Boolean  @default(false)
+  status          GameStatus @default(ACTIVE)
+  views           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeature])
+  @@index([playCount])
+  @@index([rating])
+  @@map("games")
+}
+
+model Advertisement {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
+  position    AdPosition
+  size        String  @db.VarChar(50) // "300x250", "728x90", etc.
+  code        String  @db.LongText // HTML/JS ad code
+  isActive    Boolean @default(true)
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([position])
+  @@index([isActive])
+  @@map("advertisements")
+}
+
+model SearchQuery {
+  id        Int      @id @default(autoincrement())
+  query     String   @db.VarChar(255)
+  results   Int      @default(0)
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_queries")
+}
+
+model Analytics {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date
+  pageViews   Int      @default(0)
+  uniqueUsers Int      @default(0)
+  gameViews   Int      @default(0)
+  gamePlays   Int      @default(0)
+  topGames    Json?    // Top 10 games for the day
+  topSearches Json?    // Top 10 searches for the day
+  createdAt   DateTime @default(now())
+
+  @@unique([date])
+  @@map("analytics")
+}
+
+model FileUpload {
+  id         Int      @id @default(autoincrement())
+  filename   String   @db.VarChar(255)
+  originalName String @db.VarChar(255)
+  mimeType   String   @db.VarChar(100)
+  size       Int
+  path       String   @db.VarChar(500)
+  url        String   @db.VarChar(500)
+  gameId     Int?     // Optional relation to game
+  uploadedBy String?  @db.VarChar(100) // Admin username
+  createdAt  DateTime @default(now())
+
+  @@index([gameId])
+  @@map("file_uploads")
+}
+
+// Enums
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+}
+
+enum GameStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  FEATURED
+}
+
+enum AdPosition {
+  HEADER
+  SIDEBAR
+  CONTENT
+  FOOTER
+  POPUP
+  BANNER
+  SKYSCRAPER
+}

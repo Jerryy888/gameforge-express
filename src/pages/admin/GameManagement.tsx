@@ -28,6 +28,7 @@ import {
   Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { type Game } from "@/lib/api";
 
 // Mock data
 const mockGames = [
@@ -73,7 +74,7 @@ const GameManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingGame, setEditingGame] = useState<any>(null);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -193,7 +194,7 @@ const GameManagement = () => {
     });
   };
 
-  const openEditDialog = (game: any) => {
+  const openEditDialog = (game: Game) => {
     setEditingGame(game);
     setFormData({
       title: game.title,
@@ -415,7 +416,23 @@ const GameManagement = () => {
 };
 
 // Game Dialog Component
-const GameDialog = ({ isEdit, formData, setFormData, onSave, isLoading, categories }: any) => {
+interface GameDialogProps {
+  isEdit: boolean;
+  formData: {
+    title: string;
+    description: string;
+    category: string;
+    tags: string;
+    thumbnail: string;
+    fileUrl: string;
+  };
+  setFormData: (data: Partial<{ title: string; description: string; category: string; tags: string; thumbnail: string; fileUrl: string }>) => void;
+  onSave: () => void;
+  isLoading: boolean;
+  categories: Array<{ id: number; name: string }>;
+}
+
+const GameDialog = ({ isEdit, formData, setFormData, onSave, isLoading, categories }: GameDialogProps) => {
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>

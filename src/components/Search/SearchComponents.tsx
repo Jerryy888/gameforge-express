@@ -294,7 +294,7 @@ export const AdvancedSearch = ({ onSearch, initialFilters }: AdvancedSearchProps
     { value: "name", label: "Name A-Z" }
   ];
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
+  const handleFilterChange = (key: keyof SearchFilters, value: string | number | boolean) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 

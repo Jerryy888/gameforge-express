@@ -111,7 +111,7 @@ class ApiClient {
   }
 
   // POST请求
-  async post<T>(endpoint: string, data?: any): Promise<T> {
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -119,7 +119,7 @@ class ApiClient {
   }
 
   // PUT请求
-  async put<T>(endpoint: string, data: any): Promise<T> {
+  async put<T>(endpoint: string, data: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -132,7 +132,7 @@ class ApiClient {
   }
 
   // 文件上传
-  async uploadFile<T>(endpoint: string, file: File, additionalData?: any): Promise<T> {
+  async uploadFile<T>(endpoint: string, file: File, additionalData?: Record<string, unknown>): Promise<T> {
     const formData = new FormData();
     formData.append('file', file);
     
@@ -304,7 +304,7 @@ export const adminAPI = {
     token: string;
     admin: { id: number; username: string };
   }> => {
-    const response: any = await apiClient.post('/auth/login', credentials);
+    const response = await apiClient.post<{ token: string; admin: { id: number; username: string } }>('/auth/login', credentials);
     if (response?.token) {
       apiClient.setToken(response.token);
     }
@@ -318,7 +318,7 @@ export const adminAPI = {
   },
 
   // 验证令牌
-  verifyToken: async (): Promise<{ valid: boolean; admin?: any }> => {
+  verifyToken: async (): Promise<{ valid: boolean; admin?: { id: number; username: string } }> => {
     return apiClient.get('/auth/verify');
   },
 
@@ -367,7 +367,7 @@ export const searchAPI = {
 export { apiClient };
 
 // 错误处理工具
-export const handleApiError = (error: any) => {
+export const handleApiError = (error: unknown) => {
   if (error.response?.status === 401) {
     // 未授权，重定向到登录页
     apiClient.clearToken();
@@ -375,7 +375,7 @@ export const handleApiError = (error: any) => {
   }
   
   return {
-    message: error.message || 'An unexpected error occurred',
-    status: error.response?.status || 500,
+    message: error instanceof Error ? error.message : 'An unexpected error occurred',
+    status: (error as { response?: { status?: number } }).response?.status || 500,
   };
 };

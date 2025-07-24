@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Edit3, Trash2, MonitorSpeaker, Copy, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { type Advertisement } from "@/lib/api";
 
 const mockAds = [
   {
@@ -69,9 +70,9 @@ const adPositions = [
 const AdManagement = () => {
   const [ads, setAds] = useState(mockAds);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingAd, setEditingAd] = useState<any>(null);
+  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [previewAd, setPreviewAd] = useState<any>(null);
+  const [previewAd, setPreviewAd] = useState<Advertisement | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -206,7 +207,7 @@ const AdManagement = () => {
     });
   };
 
-  const openEditDialog = (ad: any) => {
+  const openEditDialog = (ad: Advertisement) => {
     setEditingAd(ad);
     setFormData({
       name: ad.name,
@@ -443,7 +444,22 @@ const AdManagement = () => {
   );
 };
 
-const AdDialog = ({ isEdit, formData, setFormData, onSave, isLoading, adPositions }: any) => {
+interface AdDialogProps {
+  isEdit: boolean;
+  formData: {
+    name: string;
+    position: string;
+    size: string;
+    code: string;
+    isActive: boolean;
+  };
+  setFormData: (data: Partial<{ name: string; position: string; size: string; code: string; isActive: boolean }>) => void;
+  onSave: () => void;
+  isLoading: boolean;
+  adPositions: Array<{ value: string; label: string; size: string }>;
+}
+
+const AdDialog = ({ isEdit, formData, setFormData, onSave, isLoading, adPositions }: AdDialogProps) => {
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
@@ -475,7 +491,7 @@ const AdDialog = ({ isEdit, formData, setFormData, onSave, isLoading, adPosition
                 <SelectValue placeholder="Select position" />
               </SelectTrigger>
               <SelectContent>
-                {adPositions.map((position: any) => (
+                {adPositions.map((position: { value: string; label: string; size: string }) => (
                   <SelectItem key={position.value} value={position.value}>
                     {position.label} ({position.size})
                   </SelectItem>

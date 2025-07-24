@@ -1,9 +1,14 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { adminAPI } from "@/lib/api";
 
+interface Admin {
+  id: number;
+  username: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  admin: any | null;
+  admin: Admin | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
@@ -25,7 +30,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [admin, setAdmin] = useState<any | null>(null);
+  const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

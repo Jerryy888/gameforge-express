@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Star
 } from "lucide-react";
-import { searchAPI, gameAPI } from "@/lib/api";
+import { searchAPI, gameAPI, type Game } from "@/lib/api";
 
 interface SearchFilters {
   query: string;
@@ -29,7 +29,7 @@ interface SearchFilters {
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
   const [searchTime, setSearchTime] = useState(0);
@@ -58,7 +58,7 @@ const SearchResults = () => {
     
     // 获取推荐数据
     loadSuggestions();
-  }, [query, category, sortBy]);
+  }, [query, category, sortBy, initialFilters, performSearch]);
 
   useEffect(() => {
     // 获取最近搜索

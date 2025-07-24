@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Edit3, Trash2, FolderTree } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { type Category } from "@/lib/api";
 
 const mockCategories = [
   { id: 1, name: "Action", slug: "action", description: "Fast-paced action games", gameCount: 15, icon: "⚡" },
@@ -29,7 +30,7 @@ const mockCategories = [
 const CategoryManagement = () => {
   const [categories, setCategories] = useState(mockCategories);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -134,7 +135,7 @@ const CategoryManagement = () => {
     });
   };
 
-  const openEditDialog = (category: any) => {
+  const openEditDialog = (category: Category) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
@@ -297,7 +298,19 @@ const CategoryManagement = () => {
   );
 };
 
-const CategoryDialog = ({ isEdit, formData, setFormData, onSave, isLoading }: any) => {
+interface CategoryDialogProps {
+  isEdit: boolean;
+  formData: {
+    name: string;
+    description: string;
+    icon: string;
+  };
+  setFormData: (data: Partial<{ name: string; description: string; icon: string }>) => void;
+  onSave: () => void;
+  isLoading: boolean;
+}
+
+const CategoryDialog = ({ isEdit, formData, setFormData, onSave, isLoading }: CategoryDialogProps) => {
   return (
     <DialogContent>
       <DialogHeader>

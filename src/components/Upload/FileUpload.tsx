@@ -95,8 +95,8 @@ export const FileUpload = ({
         });
       }, 500);
       
-    } catch (error: any) {
-      onUploadError(error.message || 'Upload failed');
+    } catch (error: unknown) {
+      onUploadError(error instanceof Error ? error.message : 'Upload failed');
       setUploadProgress(0);
     } finally {
       setIsUploading(false);
@@ -107,7 +107,7 @@ export const FileUpload = ({
     e.preventDefault();
     setIsDragging(false);
     handleFileSelect(e.dataTransfer.files);
-  }, []);
+  }, [handleFileSelect]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -310,8 +310,8 @@ export const BatchFileUpload = ({
       setUploadProgress({});
       setCompletedUploads([]);
       
-    } catch (error: any) {
-      onUploadError(error.message || 'Batch upload failed');
+    } catch (error: unknown) {
+      onUploadError(error instanceof Error ? error.message : 'Batch upload failed');
     } finally {
       setIsUploading(false);
     }
