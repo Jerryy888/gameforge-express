@@ -1,15 +1,15 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest, requireRole, optionalAuth } from '@/middleware/auth';
 import { validateCategory, validateId, validatePagination } from '@/middleware/validation';
 import { asyncHandler, createError } from '@/middleware/errorHandler';
-import * as slugify from 'slugify';
+import slugify from 'slugify';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get all categories (public)
-router.get('/', optionalAuth, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', optionalAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const includeInactive = req.admin && req.query.includeInactive === 'true';
   
   const where = includeInactive ? {} : { isActive: true };
@@ -41,7 +41,7 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthRequest, res) => {
 }));
 
 // Get single category by ID or slug (public)
-router.get('/:identifier', asyncHandler(async (req, res) => {
+router.get('/:identifier', asyncHandler(async (req: Request, res: Response) => {
   const { identifier } = req.params;
   const isId = /^\d+$/.test(identifier);
   
@@ -78,7 +78,7 @@ router.get('/:identifier', asyncHandler(async (req, res) => {
 }));
 
 // Get category by slug with games
-router.get('/slug/:slug', asyncHandler(async (req, res) => {
+router.get('/slug/:slug', asyncHandler(async (req: Request, res: Response) => {
   const { slug } = req.params;
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 12;
@@ -164,7 +164,7 @@ router.get('/slug/:slug', asyncHandler(async (req, res) => {
 }));
 
 // Admin endpoints - Create category
-router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateCategory, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateCategory, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { name, description, icon, sortOrder } = req.body;
   
   // Generate slug
@@ -207,7 +207,7 @@ router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), valid
 }));
 
 // Admin endpoints - Update category
-router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateCategory, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateCategory, asyncHandler(async (req: AuthRequest, res: Response) => {
   const categoryId = parseInt(req.params.id);
   const updateData = { ...req.body };
   
@@ -264,7 +264,7 @@ router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), val
 }));
 
 // Admin endpoints - Delete category
-router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const categoryId = parseInt(req.params.id);
   
   const category = await prisma.category.findUnique({
@@ -296,7 +296,7 @@ router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), 
 }));
 
 // Admin endpoints - Toggle category status
-router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const categoryId = parseInt(req.params.id);
   const { isActive } = req.body;
   
@@ -328,7 +328,7 @@ router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
 }));
 
 // Admin endpoints - Reorder categories
-router.post('/reorder', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/reorder', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { categoryOrders } = req.body;
   
   if (!Array.isArray(categoryOrders)) {
@@ -351,7 +351,7 @@ router.post('/reorder', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN'])
 }));
 
 // Get category statistics (admin only)
-router.get('/:id/stats', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/:id/stats', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const categoryId = parseInt(req.params.id);
   
   const category = await prisma.category.findUnique({

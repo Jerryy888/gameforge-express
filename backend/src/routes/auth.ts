@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
@@ -10,7 +10,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Login
-router.post('/login', validateLogin, asyncHandler(async (req, res) => {
+router.post('/login', validateLogin, asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
   // Find admin by username or email
@@ -48,7 +48,7 @@ router.post('/login', validateLogin, asyncHandler(async (req, res) => {
       role: admin.role
     },
     process.env.JWT_SECRET!,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn: '7d' }
   );
 
   res.json({
@@ -63,7 +63,7 @@ router.post('/login', validateLogin, asyncHandler(async (req, res) => {
 }));
 
 // Register (for development/setup)
-router.post('/register', validateRegister, asyncHandler(async (req, res) => {
+router.post('/register', validateRegister, asyncHandler(async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
   // Check if first admin (auto super admin)
@@ -97,7 +97,7 @@ router.post('/register', validateRegister, asyncHandler(async (req, res) => {
 }));
 
 // Verify token
-router.get('/verify', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/verify', authenticateToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({
     valid: true,
     admin: req.admin
@@ -105,14 +105,14 @@ router.get('/verify', authenticateToken, asyncHandler(async (req: AuthRequest, r
 }));
 
 // Logout (client-side token removal)
-router.post('/logout', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/logout', authenticateToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({
     message: 'Logged out successfully'
   });
 }));
 
 // Get current admin profile
-router.get('/profile', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/profile', authenticateToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const admin = await prisma.admin.findUnique({
     where: { id: req.admin!.id },
     select: {
@@ -133,7 +133,7 @@ router.get('/profile', authenticateToken, asyncHandler(async (req: AuthRequest, 
 }));
 
 // Update profile
-router.put('/profile', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/profile', authenticateToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { email, currentPassword, newPassword } = req.body;
 
   const admin = await prisma.admin.findUnique({

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest, requireRole } from '@/middleware/auth';
 import { validateAd, validateId } from '@/middleware/validation';
@@ -8,7 +8,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Get all ads (admin only)
-router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const includeInactive = req.query.includeInactive === 'true';
   
   const where = includeInactive ? {} : { isActive: true };
@@ -25,7 +25,7 @@ router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncH
 }));
 
 // Get ads by position (public endpoint for display)
-router.get('/position/:position', asyncHandler(async (req, res) => {
+router.get('/position/:position', asyncHandler(async (req: Request, res: Response) => {
   const { position } = req.params;
   
   const validPositions = ['HEADER', 'SIDEBAR', 'CONTENT', 'FOOTER', 'POPUP', 'BANNER', 'SKYSCRAPER'];
@@ -69,7 +69,7 @@ router.get('/position/:position', asyncHandler(async (req, res) => {
 }));
 
 // Track ad click
-router.post('/:id/click', validateId, asyncHandler(async (req, res) => {
+router.post('/:id/click', validateId, asyncHandler(async (req: Request, res: Response) => {
   const adId = parseInt(req.params.id);
   
   const ad = await prisma.advertisement.findFirst({
@@ -92,7 +92,7 @@ router.post('/:id/click', validateId, asyncHandler(async (req, res) => {
 }));
 
 // Get single ad (admin only)
-router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const adId = parseInt(req.params.id);
   
   const ad = await prisma.advertisement.findUnique({
@@ -107,7 +107,7 @@ router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), val
 }));
 
 // Create ad (admin only)
-router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateAd, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateAd, asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     name,
     position,
@@ -137,7 +137,7 @@ router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), valid
 }));
 
 // Update ad (admin only)
-router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateAd, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateAd, asyncHandler(async (req: AuthRequest, res: Response) => {
   const adId = parseInt(req.params.id);
   const updateData = { ...req.body };
   
@@ -175,7 +175,7 @@ router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), val
 }));
 
 // Delete ad (admin only)
-router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const adId = parseInt(req.params.id);
   
   const ad = await prisma.advertisement.findUnique({
@@ -196,7 +196,7 @@ router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), 
 }));
 
 // Toggle ad status (admin only)
-router.patch('/:id/toggle', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.patch('/:id/toggle', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const adId = parseInt(req.params.id);
   const { isActive } = req.body;
   
@@ -216,7 +216,7 @@ router.patch('/:id/toggle', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
 }));
 
 // Get ad statistics (admin only)
-router.get('/:id/stats', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/:id/stats', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const adId = parseInt(req.params.id);
   const days = parseInt(req.query.days as string) || 30;
   
@@ -249,7 +249,7 @@ router.get('/:id/stats', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']
 }));
 
 // Get all ads statistics (admin only)
-router.get('/stats/overview', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.get('/stats/overview', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const [
     totalAds,
     activeAds,
@@ -304,7 +304,7 @@ router.get('/stats/overview', authenticateToken, requireRole(['SUPER_ADMIN', 'AD
 }));
 
 // Bulk operations (admin only)
-router.post('/bulk', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/bulk', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { action, adIds } = req.body;
   
   if (!adIds || !Array.isArray(adIds) || adIds.length === 0) {

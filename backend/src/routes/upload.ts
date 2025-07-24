@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -92,7 +92,7 @@ function formatFileSize(bytes: number): string {
 }
 
 // Upload single file
-router.post('/single', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('file'), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/single', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('file'), asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!req.file) {
     throw createError('No file uploaded', 400, 'NO_FILE_UPLOADED');
   }
@@ -133,7 +133,7 @@ router.post('/single', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']),
 }));
 
 // Upload multiple files
-router.post('/multiple', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.array('files', 5), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/multiple', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.array('files', 5), asyncHandler(async (req: AuthRequest, res: Response) => {
   const files = req.files as Express.Multer.File[];
   
   if (!files || files.length === 0) {
@@ -178,7 +178,7 @@ router.post('/multiple', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']
 }));
 
 // Get uploaded files list (admin only)
-router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
   const gameId = req.query.gameId ? parseInt(req.query.gameId as string) : undefined;
@@ -219,7 +219,7 @@ router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncH
 }));
 
 // Delete uploaded file
-router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const fileId = parseInt(req.params.id);
   
   const fileUpload = await prisma.fileUpload.findUnique({
@@ -246,7 +246,7 @@ router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), 
 }));
 
 // Get file info
-router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const fileId = parseInt(req.params.id);
   
   const fileUpload = await prisma.fileUpload.findUnique({
@@ -265,7 +265,7 @@ router.get('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asy
 }));
 
 // Upload game file (specialized endpoint)
-router.post('/game', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('file'), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/game', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('file'), asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!req.file) {
     throw createError('No game file uploaded', 400, 'NO_FILE_UPLOADED');
   }
@@ -324,7 +324,7 @@ router.post('/game', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), u
 }));
 
 // Upload image (specialized endpoint for thumbnails/screenshots)
-router.post('/image', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('image'), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/image', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), upload.single('image'), asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!req.file) {
     throw createError('No image uploaded', 400, 'NO_IMAGE_UPLOADED');
   }
@@ -368,7 +368,7 @@ router.post('/image', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), 
 }));
 
 // Get upload statistics (admin only)
-router.get('/stats/overview', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.get('/stats/overview', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const [
     totalFiles,
     totalSize,

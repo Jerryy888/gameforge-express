@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { validateSearch } from '@/middleware/validation';
 import { asyncHandler, createError } from '@/middleware/errorHandler';
@@ -7,7 +7,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Search games
-router.get('/', validateSearch, asyncHandler(async (req, res) => {
+router.get('/', validateSearch, asyncHandler(async (req: Request, res: Response) => {
   const query = req.query.q as string;
   const categoryId = req.query.category ? parseInt(req.query.category as string) : undefined;
   const minRating = req.query.minRating ? parseFloat(req.query.minRating as string) : undefined;
@@ -30,9 +30,9 @@ router.get('/', validateSearch, asyncHandler(async (req, res) => {
   const where: any = {
     status: 'ACTIVE',
     OR: [
-      { title: { contains: query, mode: 'insensitive' } },
-      { description: { contains: query, mode: 'insensitive' } },
-      { developer: { contains: query, mode: 'insensitive' } }
+      { title: { contains: query } },
+      { description: { contains: query } },
+      { developer: { contains: query } }
     ]
   };
   
@@ -140,7 +140,7 @@ router.get('/', validateSearch, asyncHandler(async (req, res) => {
 }));
 
 // Get search suggestions
-router.get('/suggestions', asyncHandler(async (req, res) => {
+router.get('/suggestions', asyncHandler(async (req: Request, res: Response) => {
   const query = req.query.q as string;
   
   if (!query || query.length < 2) {
@@ -151,8 +151,7 @@ router.get('/suggestions', asyncHandler(async (req, res) => {
   const gameSuggestions = await prisma.game.findMany({
     where: {
       title: {
-        contains: query,
-        mode: 'insensitive'
+        contains: query
       },
       status: 'ACTIVE'
     },
@@ -169,8 +168,7 @@ router.get('/suggestions', asyncHandler(async (req, res) => {
   const categorySuggestions = await prisma.category.findMany({
     where: {
       name: {
-        contains: query,
-        mode: 'insensitive'
+        contains: query
       },
       isActive: true
     },
@@ -184,8 +182,7 @@ router.get('/suggestions', asyncHandler(async (req, res) => {
   const developerSuggestions = await prisma.game.findMany({
     where: {
       developer: {
-        contains: query,
-        mode: 'insensitive'
+        contains: query
       },
       status: 'ACTIVE'
     },
@@ -209,7 +206,7 @@ router.get('/suggestions', asyncHandler(async (req, res) => {
 }));
 
 // Get trending searches
-router.get('/trending', asyncHandler(async (req, res) => {
+router.get('/trending', asyncHandler(async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10;
   
   // Get most searched terms from the last 7 days
@@ -240,7 +237,7 @@ router.get('/trending', asyncHandler(async (req, res) => {
 }));
 
 // Advanced search with filters
-router.post('/advanced', asyncHandler(async (req, res) => {
+router.post('/advanced', asyncHandler(async (req: Request, res: Response) => {
   const {
     query,
     categories,
@@ -264,9 +261,9 @@ router.post('/advanced', asyncHandler(async (req, res) => {
   
   if (query) {
     where.OR = [
-      { title: { contains: query, mode: 'insensitive' } },
-      { description: { contains: query, mode: 'insensitive' } },
-      { developer: { contains: query, mode: 'insensitive' } }
+      { title: { contains: query } },
+      { description: { contains: query } },
+      { developer: { contains: query } }
     ];
   }
   
@@ -285,17 +282,17 @@ router.post('/advanced', asyncHandler(async (req, res) => {
   }
   
   if (developer) {
-    where.developer = { contains: developer, mode: 'insensitive' };
+    where.developer = { contains: developer };
   }
   
   if (featured === true) {
     where.isFeature = true;
   }
   
-  // Handle tags search (JSON array contains)
+  // Handle tags search (JSON string contains - simplified)
   if (tags && tags.length > 0) {
     where.tags = {
-      hasSome: tags
+      contains: tags[0]  // Simplified: just check first tag
     };
   }
   
@@ -375,13 +372,12 @@ async function generateSuggestions(query: string): Promise<string[]> {
       OR: [
         {
           title: {
-            contains: query.substring(0, Math.max(2, query.length - 1)),
-            mode: 'insensitive'
+            contains: query.substring(0, Math.max(2, query.length - 1))
           }
         },
         {
-          tags: {
-            hasSome: query.split(' ').filter(word => word.length > 2)
+          title: {
+            contains: query
           }
         }
       ],

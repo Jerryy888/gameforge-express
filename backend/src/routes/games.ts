@@ -1,15 +1,15 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest, requireRole, optionalAuth } from '@/middleware/auth';
 import { validateGame, validateId, validatePagination } from '@/middleware/validation';
 import { asyncHandler, createError } from '@/middleware/errorHandler';
-import * as slugify from 'slugify';
+import slugify from 'slugify';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get all games (public endpoint with optional auth for admin data)
-router.get('/', validatePagination, optionalAuth, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', validatePagination, optionalAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 12;
   const category = req.query.category as string;
@@ -97,7 +97,7 @@ router.get('/', validatePagination, optionalAuth, asyncHandler(async (req: AuthR
 }));
 
 // Get single game by ID or slug (public)
-router.get('/:identifier', asyncHandler(async (req, res) => {
+router.get('/:identifier', asyncHandler(async (req: Request, res: Response) => {
   const { identifier } = req.params;
   const isId = /^\d+$/.test(identifier);
   
@@ -136,7 +136,7 @@ router.get('/:identifier', asyncHandler(async (req, res) => {
 }));
 
 // Increment play count
-router.post('/:id/play', validateId, asyncHandler(async (req, res) => {
+router.post('/:id/play', validateId, asyncHandler(async (req: Request, res: Response) => {
   const gameId = parseInt(req.params.id);
   
   const game = await prisma.game.findFirst({
@@ -159,7 +159,7 @@ router.post('/:id/play', validateId, asyncHandler(async (req, res) => {
 }));
 
 // Get related games
-router.get('/:id/related', validateId, asyncHandler(async (req, res) => {
+router.get('/:id/related', validateId, asyncHandler(async (req: Request, res: Response) => {
   const gameId = parseInt(req.params.id);
   const limit = parseInt(req.query.limit as string) || 4;
   
@@ -206,7 +206,7 @@ router.get('/:id/related', validateId, asyncHandler(async (req, res) => {
 }));
 
 // Admin endpoints - Create game
-router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateGame, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateGame, asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     title,
     description,
@@ -266,7 +266,7 @@ router.post('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), valid
 }));
 
 // Admin endpoints - Update game
-router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateGame, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, validateGame, asyncHandler(async (req: AuthRequest, res: Response) => {
   const gameId = parseInt(req.params.id);
   const updateData = { ...req.body };
   
@@ -320,7 +320,7 @@ router.put('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), val
 }));
 
 // Admin endpoints - Delete game
-router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const gameId = parseInt(req.params.id);
   
   const game = await prisma.game.findUnique({
@@ -341,7 +341,7 @@ router.delete('/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), 
 }));
 
 // Admin endpoints - Toggle game status
-router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res) => {
+router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), validateId, asyncHandler(async (req: AuthRequest, res: Response) => {
   const gameId = parseInt(req.params.id);
   const { status } = req.body;
   
@@ -373,7 +373,7 @@ router.patch('/:id/status', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
 }));
 
 // Admin endpoints - Bulk operations
-router.post('/bulk', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/bulk', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMIN']), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { action, gameIds } = req.body;
   
   if (!gameIds || !Array.isArray(gameIds) || gameIds.length === 0) {
