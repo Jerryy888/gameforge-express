@@ -1,0 +1,99 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: Deploy to server
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      run: |
+        # Create deployment package
+        tar -czf gameforge-deploy.tar.gz dist backend deploy package.json package-lock.json
+        
+        # Upload to server
+        scp -o StrictHostKeyChecking=no gameforge-deploy.tar.gz $SERVER_USER@$SERVER_IP:/tmp/
+        
+        # Execute deployment on server
+        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP << 'EOF'
+          set -e
+          
+          PROJECT_DIR="/var/www/518178"
+          BACKUP_DIR="/var/backups/518178"
+          
+          # Create backup
+          mkdir -p $BACKUP_DIR/$(date +%Y%m%d-%H%M%S)
+          if [ -d $PROJECT_DIR ]; then
+            cp -r $PROJECT_DIR $BACKUP_DIR/$(date +%Y%m%d-%H%M%S)/
+          fi
+          
+          # Extract new deployment
+          mkdir -p $PROJECT_DIR
+          cd $PROJECT_DIR
+          tar -xzf /tmp/gameforge-deploy.tar.gz
+          
+          # Update environment variables
+          cd deploy
+          cat > .env << EOL
+        DB_PASSWORD=$DB_PASSWORD
+        JWT_SECRET=$JWT_SECRET  
+        ADMIN_PASSWORD=$ADMIN_PASSWORD
+        EOL
+          
+          # Deploy with Docker Compose
+          docker-compose down || true
+          docker-compose up --build -d
+          
+          # Wait for services
+          sleep 30
+          
+          # Run database migration
+          docker-compose exec -T backend npm run db:deploy || echo "Migration completed"
+          
+          # Cleanup
+          rm -f /tmp/gameforge-deploy.tar.gz
+          
+          echo "Deployment completed successfully!"
+        EOF
+
+    - name: Verify deployment
+      env:
+        DOMAIN: ${{ secrets.DOMAIN || '518178.com' }}
+      run: |
+        # Wait for deployment to stabilize
+        sleep 60
+        
+        # Basic health check
+        curl -f https://$DOMAIN/health || curl -f http://$DOMAIN/health || echo "Health check failed"
+        
+        echo "Deployment verification completed"

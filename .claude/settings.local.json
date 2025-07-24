@@ -11,7 +11,8 @@
       "Bash(ls:*)",
       "Bash(npm run:*)",
       "Bash(npx prisma migrate dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

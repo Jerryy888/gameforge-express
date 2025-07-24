@@ -45,7 +45,7 @@ cd ..
 npm install
 npm run build
 
-echo -e "${GREEN}✅ Frontend built successfully${NC}"
+echo -e "${GREEN}�?Frontend built successfully${NC}"
 
 echo -e "${YELLOW}📤 Step 2: Uploading files to server...${NC}"
 
@@ -61,7 +61,7 @@ copy_to_server "deploy/" "$PROJECT_DIR/"
 # Copy frontend build files
 copy_to_server "dist/" "$PROJECT_DIR/"
 
-echo -e "${GREEN}✅ Files uploaded successfully${NC}"
+echo -e "${GREEN}�?Files uploaded successfully${NC}"
 
 echo -e "${YELLOW}🔧 Step 3: Setting up server environment...${NC}"
 
@@ -90,7 +90,7 @@ run_remote "
     echo 'Docker and Docker Compose installed successfully'
 "
 
-echo -e "${GREEN}✅ Server environment setup completed${NC}"
+echo -e "${GREEN}�?Server environment setup completed${NC}"
 
 echo -e "${YELLOW}🔒 Step 4: Configuring firewall...${NC}"
 
@@ -107,9 +107,9 @@ run_remote "
     echo 'Firewall configured successfully'
 "
 
-echo -e "${GREEN}✅ Firewall configured${NC}"
+echo -e "${GREEN}�?Firewall configured${NC}"
 
-echo -e "${YELLOW}🗄️ Step 5: Setting up SSL certificate...${NC}"
+echo -e "${YELLOW}🗄�?Step 5: Setting up SSL certificate...${NC}"
 
 run_remote "
     # Stop any running nginx to free port 80
@@ -121,7 +121,7 @@ run_remote "
     echo 'SSL certificate setup completed'
 "
 
-echo -e "${GREEN}✅ SSL certificate configured${NC}"
+echo -e "${GREEN}�?SSL certificate configured${NC}"
 
 echo -e "${YELLOW}🐳 Step 6: Starting Docker services...${NC}"
 
@@ -146,7 +146,7 @@ run_remote "
     echo 'Docker services started successfully'
 "
 
-echo -e "${GREEN}✅ Docker services started${NC}"
+echo -e "${GREEN}�?Docker services started${NC}"
 
 echo -e "${YELLOW}📊 Step 7: Running database migration...${NC}"
 
@@ -162,7 +162,7 @@ run_remote "
     echo 'Database setup completed'
 "
 
-echo -e "${GREEN}✅ Database migration completed${NC}"
+echo -e "${GREEN}�?Database migration completed${NC}"
 
 echo -e "${YELLOW}🔍 Step 8: Verifying deployment...${NC}"
 
@@ -179,7 +179,7 @@ run_remote "
     curl -I http://localhost || echo 'Nginx check failed'
 "
 
-echo -e "${GREEN}✅ Deployment verification completed${NC}"
+echo -e "${GREEN}�?Deployment verification completed${NC}"
 
 echo -e "${YELLOW}📋 Step 9: Post-deployment setup...${NC}"
 
@@ -217,7 +217,7 @@ EOF
     echo 'Post-deployment setup completed'
 "
 
-echo -e "${GREEN}✅ Post-deployment setup completed${NC}"
+echo -e "${GREEN}�?Post-deployment setup completed${NC}"
 
 echo ""
 echo -e "${GREEN}🎉 DEPLOYMENT COMPLETED SUCCESSFULLY! 🎉${NC}"
@@ -233,4 +233,4 @@ echo "- Update the passwords in $PROJECT_DIR/deploy/.env on the server"
 echo "- Monitor logs with: docker-compose -f $PROJECT_DIR/deploy/docker-compose.yml logs -f"
 echo "- Restart services with: docker-compose -f $PROJECT_DIR/deploy/docker-compose.yml restart"
 echo ""
-echo -e "${GREEN}✅ 518178.com is now live! 🚀${NC}"
+echo -e "${GREEN}�?518178.com is now live! 🚀${NC}"
